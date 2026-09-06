@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Suivi de Carburant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- ⭐ PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3799">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Carburant">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4a69bd 0%, #1e3799 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            direction: ltr;
+        }
+
+        /* Login Screen */
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideIn 0.5s ease;
+        }
+
+        .login-container h1 {
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .logo {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            border-radius: 50%;
+            margin: 0 auto 2rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 10px 25px rgba(74, 105, 189, 0.3);
+        }
+
+        .welcome-message { color: #27ae60; font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
+
+        .input-group { margin-bottom: 1.5rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; color: #34495e; font-weight: 600; }
+        .input-group input {
+            width: 100%; padding: 1rem;
+            border: 2px solid #e0e6ed; border-radius: 10px;
+            font-size: 1rem; transition: all 0.3s ease;
+        }
+        .input-group input:focus { outline: none; border-color: #4a69bd; box-shadow: 0 0 0 3px rgba(74, 105, 189, 0.1); }
+
+        .login-btn {
+            width: 100%; padding: 1rem;
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white; border: none; border-radius: 10px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(74, 105, 189, 0.4); }
+
+        /* Main App */
+        .app-container { display: none; width: 100%; min-height: 100vh; background: #f8f9fa; }
+
+        header {
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white; padding: 1rem 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-content {
+            display: flex; justify-content: center; align-items: center;
+            max-width: 1400px; margin: 0 auto; flex-wrap: wrap; gap: 0.5rem;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+        .code-btn {
+            padding: 0.5rem 1.2rem;
+            background: rgba(255, 255, 255, 0.15); color: white;
+            border: 2px solid rgba(255, 255, 255, 0.7); border-radius: 25px;
+            cursor: pointer; transition: all 0.3s ease; font-weight: 600; font-size: 0.9rem;
+        }
+        .code-btn:hover { background: white; color: #1e3799; }
+
+        .logout-btn {
+            padding: 0.5rem 1.5rem;
+            background: rgba(255, 255, 255, 0.2); color: white;
+            border: 2px solid white; border-radius: 25px;
+            cursor: pointer; transition: all 0.3s ease; font-weight: 600;
+        }
+        .logout-btn:hover { background: white; color: #4a69bd; }
+
+        main { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Driver Interface */
+        .driver-interface { display: block; }
+        .driver-primary-content { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+
+        .toggle-form-btn {
+            width: 100%; padding: 1rem;
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white; border: none; border-radius: 12px;
+            font-size: 1.05rem; font-weight: 700; cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 18px rgba(39, 174, 96, 0.3);
+        }
+        .toggle-form-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(39, 174, 96, 0.4); }
+        .toggle-form-btn.open { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 6px 18px rgba(231, 76, 60, 0.3); }
+
+        .form-section {
+            background: white; padding: 2rem;
+            border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section h2 {
+            color: #2c3e50; margin-bottom: 1.5rem;
+            padding-bottom: 1rem; border-bottom: 3px solid #4a69bd;
+        }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #34495e; font-weight: 600; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 0.75rem;
+            border: 2px solid #e0e6ed; border-radius: 8px;
+            font-size: 1rem; transition: all 0.3s ease;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #4a69bd; box-shadow: 0 0 0 3px rgba(74, 105, 189, 0.1); }
+
+        .submit-btn {
+            width: 100%; padding: 1rem;
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white; border: none; border-radius: 10px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s ease; margin-top: 1rem;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(74, 105, 189, 0.4); }
+
+        /* Records Section */
+        .records-section {
+            background: white; padding: 1.5rem;
+            border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            max-height: 400px; overflow-y: auto;
+        }
+
+        .records-section h2 {
+            color: #2c3e50; margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem; border-bottom: 2px solid #4a69bd; font-size: 1.3rem;
+        }
+
+        .compact-record {
+            background: #f8f9fa; border-radius: 8px;
+            padding: 1rem; margin-bottom: 0.5rem;
+            border-left: 3px solid #4a69bd; transition: all 0.3s ease;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .compact-record:hover { background: #e9ecef; transform: translateX(3px); box-shadow: 0 5px 15px rgba(74, 105, 189, 0.2); }
+
+        .record-main-info { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; flex: 1; }
+        .truck-header { display: flex; align-items: center; gap: 0.5rem; }
+
+        .truck-icon {
+            width: 35px; height: 35px;
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1rem; flex-shrink: 0;
+        }
+
+        .truck-number { font-weight: bold; color: #e74c3c; font-size: 1.2rem; }
+        .driver-name { font-weight: 600; color: #2c3e50; font-size: 1rem; margin-left: 40px; }
+        .location-info { color: #7f8c8d; font-size: 0.9rem; margin-left: 40px; }
+        .date-info { color: #95a5a6; font-size: 0.85rem; margin-left: 40px; font-style: italic; }
+
+        .record-fuel-info { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; flex-shrink: 0; }
+        .fuel-amount { font-weight: bold; color: #4a69bd; font-size: 0.95rem; }
+        .fuel-details { font-size: 0.8rem; color: #7f8c8d; }
+
+        .record-actions { display: flex; gap: 0.5rem; margin-left: 1rem; }
+
+        .action-btn {
+            width: 35px; height: 35px; border: none; border-radius: 50%;
+            cursor: pointer; transition: all 0.3s ease;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+
+        .whatsapp-btn { background: #27ae60; color: white; }
+        .whatsapp-btn:hover { background: #229954; transform: scale(1.1); }
+
+        .pdf-rec-btn { background: #4a69bd; color: white; }
+        .pdf-rec-btn:hover { background: #1e3799; transform: scale(1.1); }
+
+        /* إحصائيات مصغرة */
+        .summary-stats {
+            background: white; padding: 1.1rem;
+            border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+
+        .stat-box { text-align: center; padding: 0.9rem 0.6rem; border-radius: 10px; transition: all 0.3s ease; }
+        .stat-box:hover { transform: translateY(-3px); }
+
+        .fuel-stat { background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; }
+        .cost-stat { background: linear-gradient(135deg, #27ae60, #229954); color: white; }
+
+        .stat-icon { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .stat-label { font-size: 0.82rem; margin-bottom: 0.2rem; opacity: 0.9; }
+        .stat-value { font-size: 1.45rem; font-weight: bold; }
+
+        /* Admin Interface */
+        .admin-interface { display: none; }
+
+        .admin-overview {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+
+        .overview-card {
+            background: white; padding: 1.5rem;
+            border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .overview-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15); }
+
+        .overview-card h3 {
+            color: #2c3e50; margin-bottom: 1rem; font-size: 1.2rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .overview-value { font-size: 2rem; font-weight: bold; color: #4a69bd; margin-bottom: 0.5rem; }
+        .overview-details { color: #7f8c8d; font-size: 0.9rem; }
+
+        .admin-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+
+        .dashboard-card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+
+        .dashboard-card h3 {
+            color: #2c3e50; margin-bottom: 1.5rem; padding-bottom: 0.5rem;
+            border-bottom: 2px solid #4a69bd; font-size: 1.3rem;
+        }
+
+        .driver-stats { display: grid; gap: 1rem; }
+
+        .driver-stat-item {
+            background: #f8f9fa; padding: 1rem; border-radius: 8px;
+            border-right: 3px solid #4a69bd; transition: all 0.3s ease;
+        }
+        .driver-stat-item:hover { background: #e9ecef; transform: translateX(3px); }
+
+        .driver-stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .driver-total { color: #27ae60; font-weight: bold; font-size: 1.1rem; }
+
+        .driver-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; color: #7f8c8d; }
+
+        .truck-info-grid { display: grid; gap: 1rem; }
+
+        .truck-info-item {
+            background: #f8f9fa; padding: 1rem; border-radius: 8px;
+            border-right: 3px solid #27ae60; transition: all 0.3s ease;
+        }
+        .truck-info-item:hover { background: #e9ecef; transform: translateX(3px); }
+
+        .truck-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .truck-driver { color: #4a69bd; font-weight: 600; }
+        .truck-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; color: #7f8c8d; }
+
+        /* Records Table */
+        .records-table { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+        .table-header { background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; padding: 1.5rem; }
+        .table-header h2 { font-size: 1.5rem; }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; }
+
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #e0e6ed; }
+        th { font-weight: 600; color: #34495e; }
+        tbody tr { transition: all 0.3s ease; }
+        tbody tr:hover { background: #f8f9fa; }
+
+        .cost-cell { font-weight: bold; color: #27ae60; }
+
+        .total-cost { background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; font-weight: bold; font-size: 1.2rem; }
+
+        /* جدول إحصائيات الشوفرين */
+        .driver-summary-card {
+            background: white; border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem; overflow: hidden;
+        }
+
+        .driver-summary-header {
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white; padding: 1rem 1.5rem;
+            font-weight: 600; font-size: 1.1rem;
+        }
+
+        .driver-summary-body { overflow-x: auto; }
+
+        .dsum-table { width: 100%; border-collapse: collapse; }
+        .dsum-table th {
+            background: #f8f9fa; color: #34495e;
+            font-size: 0.78rem; font-weight: 700; letter-spacing: 0.3px;
+        }
+        .dsum-table th, .dsum-table td {
+            padding: 0.75rem 1rem; text-align: left;
+            border-bottom: 1px solid #e0e6ed; font-size: 0.92rem; white-space: nowrap;
+        }
+        .dsum-table th.num, .dsum-table td.num { text-align: right; }
+        .dsum-table tbody tr:hover { background: #f8f9fa; }
+        .dsum-total td { background: #eef2f9; font-weight: 700; color: #1e3799; border-bottom: none; }
+
+        /* Scrollbar */
+        .records-section::-webkit-scrollbar { width: 8px; }
+        .records-section::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .records-section::-webkit-scrollbar-thumb { background: #4a69bd; border-radius: 10px; }
+        .records-section::-webkit-scrollbar-thumb:hover { background: #1e3799; }
+
+        /* Animations */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); } to { transform: translateX(-50%) translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Responsive */
+        @media (max-width: 1200px) { .admin-dashboard { grid-template-columns: 1fr; } }
+
+        @media (max-width: 768px) {
+            .admin-overview { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .compact-record { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .record-main-info { align-items: flex-start; width: 100%; }
+            .truck-header { justify-content: flex-start; }
+            .truck-number, .driver-name, .location-info, .date-info { align-self: flex-start; margin-left: 0; }
+            .record-fuel-info { align-items: flex-start; width: 100%; }
+            .record-actions { align-self: flex-end; }
+            table { font-size: 0.9rem; }
+            th, td { padding: 0.5rem; }
+            .driver-details, .truck-details { grid-template-columns: 1fr; }
+            .dsum-table th, .dsum-table td { padding: 0.5rem 0.6rem; font-size: 0.82rem; }
+        }
+
+        @media (max-width: 480px) {
+            .login-container { padding: 2rem; }
+            .form-section, .dashboard-card, .overview-card { padding: 1.5rem; }
+            .stat-box { padding: 0.75rem 0.5rem; }
+            .stat-value { font-size: 1.25rem; }
+        }
+
+        /* Success Message */
+        .success-message {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #27ae60; color: white; padding: 1rem 2rem;
+            border-radius: 10px; box-shadow: 0 5px 20px rgba(39, 174, 96, 0.3);
+            display: none; z-index: 1000; animation: slideDown 0.5s ease;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
+            background: white; padding: 0.5rem; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .admin-tab-btn {
+            flex: 1; padding: 0.85rem 1rem; border: none;
+            background: transparent; color: #7f8c8d;
+            font-weight: 600; font-size: 1rem; border-radius: 8px;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .admin-tab-btn.active { background: linear-gradient(135deg, #4a69bd, #1e3799); color: white; }
+
+        /* Archive Section */
+        .archive-actions {
+            background: white; padding: 1rem;
+            border-radius: 12px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem; text-align: center;
+        }
+
+        .archive-btn {
+            width: 100%; padding: 1rem 2rem;
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white; border: none; border-radius: 10px;
+            font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+        .archive-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(230, 126, 34, 0.4); }
+
+        .archive-search-card {
+            background: white; padding: 2rem; border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); margin-bottom: 2rem;
+        }
+
+        .archive-search-card h3 {
+            color: #2c3e50; margin-bottom: 1rem; padding-bottom: 0.5rem;
+            border-bottom: 2px solid #4a69bd;
+        }
+
+        .archive-search-col { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .archive-search-col input {
+            width: 100%; padding: 0.85rem;
+            border: 2px solid #e0e6ed; border-radius: 8px;
+            font-size: 1rem; transition: all 0.3s ease;
+        }
+        .archive-search-col input:focus { outline: none; border-color: #4a69bd; box-shadow: 0 0 0 3px rgba(74, 105, 189, 0.1); }
+
+        .archive-search-col button {
+            width: 100%; padding: 0.85rem 1.5rem;
+            background: linear-gradient(135deg, #4a69bd, #1e3799);
+            color: white; border: none; border-radius: 8px;
+            font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.3s ease;
+        }
+        .archive-search-col button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74, 105, 189, 0.35); }
+
+        .archive-search-summary {
+            background: #f8f9fa; border-radius: 10px; padding: 1.2rem;
+            margin-top: 1.5rem; border-right: 4px solid #4a69bd;
+        }
+
+        .search-group {
+            background: #f8f9fa; border-radius: 10px; padding: 1rem;
+            margin-top: 0.75rem; border-left: 4px solid #4a69bd;
+        }
+
+        .search-group-header {
+            display: flex; align-items: center;
+            flex-wrap: wrap; gap: 0.5rem;
+            font-weight: 700; font-size: 1.05rem; color: #2c3e50;
+        }
+
+        .search-group-records { margin-top: 0.75rem; display: grid; gap: 0.4rem; }
+
+        .search-record-item {
+            background: white; border: 1px solid #e4e9f0; border-radius: 8px;
+            padding: 0.6rem 0.8rem; display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 0.5rem;
+            font-size: 0.88rem; color: #555c66;
+        }
+
+        .archive-list-card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+
+        .archive-list-card h3 {
+            color: #2c3e50; margin-bottom: 1rem; padding-bottom: 0.5rem;
+            border-bottom: 2px solid #4a69bd;
+        }
+
+        .archive-month-item {
+            background: #f8f9fa; border-radius: 10px; padding: 1.2rem;
+            margin-bottom: 1rem; border-right: 4px solid #e67e22;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 0.75rem;
+        }
+
+        .archive-month-title { font-weight: bold; color: #2c3e50; font-size: 1.1rem; text-transform: capitalize; }
+        .archive-month-details { color: #7f8c8d; font-size: 0.9rem; }
+
+        .mini-btn {
+            padding: 0.5rem 1rem; border: none; border-radius: 20px;
+            cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.3s ease;
+        }
+
+        .pdf-btn { background: #4a69bd; color: white; }
+        .pdf-btn:hover { background: #1e3799; }
+
+        .table-actions { display: flex; gap: 0.4rem; }
+
+        /* الضغطة المطولة */
+        .longpress-item {
+            user-select: none; -webkit-user-select: none;
+            -webkit-touch-callout: none; touch-action: pan-y; cursor: pointer;
+        }
+
+        .longpress-hint { color: #95a5a6; font-size: 0.82rem; font-style: italic; margin-bottom: 0.75rem; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.65); z-index: 2000;
+            justify-content: center; align-items: center; padding: 1rem;
+        }
+
+        .modal-content {
+            background: white; border-radius: 15px; padding: 2rem;
+            width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4); animation: slideUp 0.3s ease;
+        }
+
+        .modal-content h3 {
+            color: #2c3e50; margin-bottom: 1.25rem; padding-bottom: 0.75rem;
+            border-bottom: 2px solid #4a69bd;
+        }
+
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+
+        .modal-actions button {
+            flex: 1; padding: 0.85rem; border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+
+        .btn-cancel { background: #e9ecef; color: #7f8c8d; }
+        .btn-cancel:hover { background: #dfe4ea; }
+        .btn-save { background: linear-gradient(135deg, #27ae60, #229954); color: white; }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(39,174,96,0.35); }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <div class="logo">🚛</div>
+        <h1>Système de Suivi de Carburant</h1>
+        <div class="welcome-message" id="welcomeMessage"></div>
+
+        <div class="input-group">
+            <label for="password">Code d'accès</label>
+            <input type="password" inputmode="numeric" id="password" placeholder="Entrez le code">
+        </div>
+
+        <button class="login-btn" onclick="login()">Connexion</button>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <header>
+            <div class="header-content">
+                <div class="header-actions">
+                    <button class="code-btn" onclick="openCodeModal()">🔑 Codes d'accès</button>
+                    <button class="logout-btn" onclick="logout()">Déconnexion</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Driver Interface -->
+            <div class="driver-interface" id="driverInterface">
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" id="driverTabBtnPrimary" onclick="switchTab('primary')">📝 Ravitaillement</button>
+                    <button class="admin-tab-btn" id="driverTabBtnArchive" onclick="switchTab('archive')">🗄️ Archive</button>
+                </div>
+
+                <div class="driver-primary-content" id="driverPrimaryContent">
+                    <button class="toggle-form-btn" id="toggleFormBtn" onclick="toggleFuelForm()">➕ Nouveau ravitaillement</button>
+
+                    <div class="form-section" id="fuelFormSection" style="display:none;">
+                        <h2>📝 Saisir les informations de ravitaillement</h2>
+
+                        <div class="form-group">
+                            <label for="truckNumber">Numéro du camion</label>
+                            <input type="text" id="truckNumber" placeholder="Ex: 1234-A-55">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="driverNameInput">Nom du chauffeur</label>
+                            <input type="text" id="driverNameInput" placeholder="Entrez le nom du chauffeur">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="location">Lieu de ravitaillement</label>
+                                <input type="text" id="location" placeholder="Ville ou station">
+                            </div>
+                            <div class="form-group">
+                                <label for="mileage">Kilométrage (km)</label>
+                                <input type="number" id="mileage" placeholder="0" step="1">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="truckFuel">Quantité carburant camion (litres)</label>
+                                <input type="number" id="truckFuel" placeholder="0" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="fridgeFuel">Quantité carburant frigo (litres)</label>
+                                <input type="number" id="fridgeFuel" placeholder="0" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="pricePerLiter">Prix du litre (DH)</label>
+                            <input type="number" id="pricePerLiter" placeholder="0.00" step="0.01">
+                        </div>
+
+                        <button class="submit-btn" onclick="submitFuelData()">Enregistrer les informations</button>
+                    </div>
+
+                    <div class="records-section">
+                        <h2>📋 Vos enregistrements</h2>
+                        <div id="recordsList"></div>
+                    </div>
+
+                    <div class="summary-stats">
+                        <div class="stats-grid">
+                            <div class="stat-box fuel-stat">
+                                <div class="stat-icon">⛽</div>
+                                <div class="stat-label">Votre total carburant</div>
+                                <div class="stat-value" id="totalFuelAmount">0 L</div>
+                            </div>
+                            <div class="stat-box cost-stat">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-label">Votre coût total</div>
+                                <div class="stat-value" id="totalCostAmount">0.00 DH</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Interface -->
+            <div class="admin-interface" id="adminInterface">
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" id="adminTabBtnPrimary" onclick="switchTab('primary')">📊 Tableau de bord</button>
+                    <button class="admin-tab-btn" id="adminTabBtnArchive" onclick="switchTab('archive')">🗄️ Archive</button>
+                </div>
+
+                <div id="adminPrimaryContent">
+                    <div class="admin-overview">
+                        <div class="overview-card">
+                            <h3>📊 Total Enregistrements</h3>
+                            <div class="overview-value" id="totalRecords">0</div>
+                            <div class="overview-details">Cette semaine: <span id="weeklyRecords">0</span></div>
+                        </div>
+                        <div class="overview-card">
+                            <h3>🚛 Camions Actifs</h3>
+                            <div class="overview-value" id="activeTrucks">0</div>
+                            <div class="overview-details">Total: <span id="totalTrucks">0</span> camions</div>
+                        </div>
+                        <div class="overview-card">
+                            <h3>👥 Chauffeurs Actifs</h3>
+                            <div class="overview-value" id="activeDrivers">0</div>
+                            <div class="overview-details">Total: <span id="totalDrivers">0</span> chauffeurs</div>
+                        </div>
+                        <div class="overview-card">
+                            <h3>💰 Coût Moyen/Litre</h3>
+                            <div class="overview-value" id="avgCostPerLiter">0 DH</div>
+                            <div class="overview-details">Ce mois: <span id="monthlyAvg">0 DH</span></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-dashboard">
+                        <div class="dashboard-card">
+                            <h3>👥 Statistiques par Chauffeur</h3>
+                            <div class="driver-stats" id="driverStats"></div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>🚛 Informations par Camion</h3>
+                            <div class="truck-info-grid" id="truckInfoGrid"></div>
+                        </div>
+                    </div>
+
+                    <div class="summary-stats">
+                        <div class="stats-grid">
+                            <div class="stat-box fuel-stat">
+                                <div class="stat-icon">⛽</div>
+                                <div class="stat-label">Total carburant</div>
+                                <div class="stat-value" id="adminTotalFuelAmount">0 L</div>
+                            </div>
+                            <div class="stat-box cost-stat">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-label">Coût total</div>
+                                <div class="stat-value" id="adminTotalCostAmount">0.00 DH</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="records-table">
+                        <div class="table-header">
+                            <h2>📊 Tableau détaillé complet</h2>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date et heure</th>
+                                    <th>Numéro camion</th>
+                                    <th>Chauffeur</th>
+                                    <th>Lieu</th>
+                                    <th>Kilométrage</th>
+                                    <th>Carburant camion</th>
+                                    <th>Carburant frigo</th>
+                                    <th>Prix/litre</th>
+                                    <th>Coût</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody"></tbody>
+                            <tfoot>
+                                <tr class="total-cost">
+                                    <td colspan="8">Total des coûts:</td>
+                                    <td id="footerTotalCost">0.00 DH</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="driver-summary-card">
+                        <div class="driver-summary-header">📈 Statistiques par chauffeur</div>
+                        <div class="driver-summary-body" id="driverSummaryBody"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared Archive Section -->
+            <div class="shared-archive-section" id="sharedArchiveSection" style="display: none;">
+                <div class="archive-actions">
+                    <button class="archive-btn" onclick="archiveCurrentMonth()">🗄️ Archiver le mois en cours</button>
+                </div>
+
+                <div class="archive-search-card">
+                    <h3>🔎 Recherche dans l'archive</h3>
+                    <div class="archive-search-col">
+                        <input type="text" id="archiveSearchInput" placeholder="Numéro de camion ou nom du chauffeur">
+                        <button onclick="searchArchive()">🔎 Rechercher</button>
+                    </div>
+                    <div id="archiveSearchResults"></div>
+                </div>
+
+                <div class="archive-list-card">
+                    <h3>📅 Mois archivés</h3>
+                    <div id="archiveMonthsList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Codes d'accès -->
+    <div class="modal-overlay" id="codeModal" onclick="if(event.target===this) closeCodeModal()">
+        <div class="modal-content">
+            <h3>🔑 Modifier les codes d'accès</h3>
+
+            <div class="form-group">
+                <label for="currentPassword">Votre code actuel (confirmation)</label>
+                <input type="password" inputmode="numeric" id="currentPassword" placeholder="••••">
+            </div>
+
+            <div class="form-group" id="driverCodeGroup">
+                <label for="newDriverCode">Nouveau code Chauffeur</label>
+                <input type="password" inputmode="numeric" id="newDriverCode" placeholder="••••">
+            </div>
+
+            <div class="form-group" id="adminCodeGroup">
+                <label for="newAdminCode">Nouveau code Admin</label>
+                <input type="password" inputmode="numeric" id="newAdminCode" placeholder="••••">
+            </div>
+
+            <button class="btn-save" style="width:100%;" onclick="updateAccessCodes()">💾 Enregistrer les codes</button>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeCodeModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message" id="successMessage">
+        ✅ Informations enregistrées avec succès!
+    </div>
+
+    <script>
+        // ============================================================
+        //  GLOBALS
+        // ============================================================
+        let currentUser = null;
+        let fuelRecords = JSON.parse(localStorage.getItem('fuelRecords') || '[]') || [];
+        let accessCodes = JSON.parse(localStorage.getItem('accessCodes')) || { driverCode: '1234', adminCode: 'admin' };
+
+        function normalizeArchives(raw) {
+            let list = [];
+            try {
+                if (Array.isArray(raw)) {
+                    raw.forEach(function (a, i) {
+                        if (!a) return;
+                        if (Array.isArray(a)) {
+                            if (a.length) list.push({ month: 'Mois ' + (i + 1), dateArchived: null, records: a });
+                            return;
+                        }
+                        const recs = Array.isArray(a.records) ? a.records : [];
+                        if (recs.length) {
+                            list.push({ month: a.month || ('Mois ' + (i + 1)), dateArchived: a.dateArchived || null, records: recs });
+                        }
+                    });
+                } else if (raw && typeof raw === 'object') {
+                    Object.keys(raw).forEach(function (m) {
+                        const v = raw[m];
+                        const recs = Array.isArray(v) ? v : (v && Array.isArray(v.records) ? v.records : []);
+                        if (recs.length) {
+                            list.push({ month: m, dateArchived: (v && v.dateArchived) || null, records: recs });
+                        }
+                    });
+                }
+            } catch (e) { list = []; }
+            return list;
+        }
+
+        let archives = normalizeArchives(JSON.parse(localStorage.getItem('archives') || '[]'));
+        try { localStorage.setItem('archives', JSON.stringify(archives)); } catch (e) {}
+
+        // ============================================================
+        //  HELPERS
+        // ============================================================
+        function formatDateTime(date) {
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} - ${hours}:${minutes}`;
+        }
+
+        function parseTimestamp(ts) {
+            const parts = String(ts || '').split(' - ')[0].split('/');
+            if (parts.length === 3) return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            return new Date();
+        }
+
+        function showSuccessMessage() {
+            const msg = document.getElementById('successMessage');
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        }
+
+        function getRecordById(id) {
+            return fuelRecords.find(r => r.id === id);
+        }
+
+        // ============================================================
+        //  INIT
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function () {
+            updateRecordsList();
+            updateSummaryStats();
+            updateDriverSummary();
+            renderArchiveList();
+            document.getElementById('password').addEventListener('keyup', function (e) {
+                if (e.key === 'Enter') login();
+            });
+            document.getElementById('archiveSearchInput').addEventListener('keyup', function (e) {
+                if (e.key === 'Enter') searchArchive();
+            });
+        });
+
+        // ============================================================
+        //  LOGIN / LOGOUT
+        // ============================================================
+        function login() {
+            const password = document.getElementById('password').value;
+            if (password === accessCodes.driverCode) {
+                currentUser = { name: 'Chauffeur', type: 'driver' };
+                showDriverInterface();
+            } else if (password === accessCodes.adminCode) {
+                currentUser = { name: 'Admin', type: 'admin' };
+                showAdminInterface();
+            } else {
+                alert('Code incorrect!');
+            }
+        }
+
+        function logout() {
+            closeCodeModal();
+            currentUser = null;
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('password').value = '';
+        }
+
+        function showDriverInterface() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('driverInterface').style.display = 'block';
+            document.getElementById('adminInterface').style.display = 'none';
+            switchTab('primary');
+            updateRecordsList();
+            updateSummaryStats();
+        }
+
+        function showAdminInterface() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('driverInterface').style.display = 'none';
+            document.getElementById('adminInterface').style.display = 'block';
+            switchTab('primary');
+            updateAdminOverview();
+            updateDriverStats();
+            updateTruckInfo();
+            updateAdminSummaryStats();
+            updateAdminTable();
+            updateDriverSummary();
+        }
+
+        function switchTab(tab) {
+            const sharedArchive = document.getElementById('sharedArchiveSection');
+            if (currentUser && currentUser.type === 'admin') {
+                document.getElementById('adminPrimaryContent').style.display = tab === 'archive' ? 'none' : 'block';
+                document.getElementById('adminTabBtnPrimary').classList.toggle('active', tab !== 'archive');
+                document.getElementById('adminTabBtnArchive').classList.toggle('active', tab === 'archive');
+            } else {
+                document.getElementById('driverPrimaryContent').style.display = tab === 'archive' ? 'none' : 'grid';
+                document.getElementById('driverTabBtnPrimary').classList.toggle('active', tab !== 'archive');
+                document.getElementById('driverTabBtnArchive').classList.toggle('active', tab === 'archive');
+            }
+            sharedArchive.style.display = tab === 'archive' ? 'block' : 'none';
+            if (tab === 'archive') renderArchiveList();
+        }
+
+        // ============================================================
+        //  FORMULAIRE PLIABLE
+        // ============================================================
+        function toggleFuelForm() {
+            const sec = document.getElementById('fuelFormSection');
+            const btn = document.getElementById('toggleFormBtn');
+            const isOpen = sec.style.display !== 'none';
+            sec.style.display = isOpen ? 'none' : 'block';
+            btn.classList.toggle('open', !isOpen);
+            btn.textContent = isOpen ? '➕ Nouveau ravitaillement' : '✖ Fermer la saisie';
+        }
+
+        // ============================================================
+        //  🔑 MODAL CODES D'ACCÈS
+        // ============================================================
+        function openCodeModal() {
+            if (!currentUser) return;
+            const isAdmin = (currentUser.type === 'admin');
+
+            document.getElementById('adminCodeGroup').style.display = isAdmin ? 'block' : 'none';
+
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newDriverCode').value = '';
+            document.getElementById('newAdminCode').value = '';
+            document.getElementById('codeModal').style.display = 'flex';
+        }
+
+        function closeCodeModal() {
+            document.getElementById('codeModal').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeCodeModal();
+        });
+
+        function updateAccessCodes() {
+            const isAdmin = (currentUser && currentUser.type === 'admin');
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newDriverCode = document.getElementById('newDriverCode').value.trim();
+            let newAdminCode = '';
+
+            // ⛔ SÉCURITÉ : seul l'Admin peut modifier le code Admin
+            if (isAdmin) {
+                newAdminCode = document.getElementById('newAdminCode').value.trim();
+            }
+
+            const expected = isAdmin ? accessCodes.adminCode : accessCodes.driverCode;
+            if (currentPassword !== expected) {
+                alert('⚠️ Code actuel incorrect !');
+                return;
+            }
+
+            if (!newDriverCode && !newAdminCode) {
+                alert('Veuillez saisir au moins un nouveau code !');
+                return;
+            }
+
+            if (newDriverCode) accessCodes.driverCode = newDriverCode;
+            if (newAdminCode) accessCodes.adminCode = newAdminCode;
+
+            localStorage.setItem('accessCodes', JSON.stringify(accessCodes));
+            closeCodeModal();
+            alert('✅ Les codes d\'accès ont été mis à jour avec succès !');
+        }
+
+        // ============================================================
+        //  SAISIE / WHATSAPP
+        // ============================================================
+        function submitFuelData() {
+            const truckNumber = document.getElementById('truckNumber').value;
+            const driverName = document.getElementById('driverNameInput').value.trim();
+            const location = document.getElementById('location').value;
+            const mileage = parseFloat(document.getElementById('mileage').value) || 0;
+            const truckFuel = parseFloat(document.getElementById('truckFuel').value) || 0;
+            const fridgeFuel = parseFloat(document.getElementById('fridgeFuel').value) || 0;
+            const pricePerLiter = parseFloat(document.getElementById('pricePerLiter').value) || 0;
+
+            if (!truckNumber || !driverName || !location) {
+                alert('Veuillez remplir tous les champs obligatoires !');
+                return;
+            }
+            if (truckFuel === 0 && fridgeFuel === 0) {
+                alert('Veuillez entrer au moins une quantité de carburant !');
+                return;
+            }
+            if (pricePerLiter === 0) {
+                alert('Veuillez entrer le prix du carburant !');
+                return;
+            }
+
+            const record = {
+                id: Date.now(),
+                timestamp: formatDateTime(new Date()),
+                driverName,
+                truckNumber,
+                location,
+                mileage,
+                truckFuel,
+                fridgeFuel,
+                pricePerLiter,
+                totalFuel: truckFuel + fridgeFuel,
+                totalCost: (truckFuel + fridgeFuel) * pricePerLiter
+            };
+
+            fuelRecords.push(record);
+            localStorage.setItem('fuelRecords', JSON.stringify(fuelRecords));
+            showSuccessMessage();
+
+            document.getElementById('truckNumber').value = '';
+            document.getElementById('driverNameInput').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('mileage').value = '';
+            document.getElementById('truckFuel').value = '';
+            document.getElementById('fridgeFuel').value = '';
+            document.getElementById('pricePerLiter').value = '';
+
+            updateRecordsList();
+            updateSummaryStats();
+            updateDriverSummary();
+
+            const sec = document.getElementById('fuelFormSection');
+            if (sec && sec.style.display !== 'none') toggleFuelForm();
+        }
+
+        function deleteRecord(id) {
+            fuelRecords = fuelRecords.filter(record => record.id !== id);
+            localStorage.setItem('fuelRecords', JSON.stringify(fuelRecords));
+
+            updateRecordsList();
+            updateSummaryStats();
+            updateDriverSummary();
+
+            if (currentUser && currentUser.type === 'admin') {
+                updateAdminOverview();
+                updateDriverStats();
+                updateTruckInfo();
+                updateAdminSummaryStats();
+                updateAdminTable();
+            }
+            showSuccessMessage();
+        }
+
+        function shareViaWhatsApp(record) {
+            const message = `Informations de ravitaillement en carburant\n\n` +
+                `Date: ${record.timestamp}\n` +
+                `Numéro camion: ${record.truckNumber}\n` +
+                `Chauffeur: ${record.driverName}\n` +
+                `Lieu: ${record.location}\n` +
+                `Kilométrage: ${record.mileage} km\n` +
+                `Carburant camion: ${record.truckFuel} litres\n` +
+                `Carburant frigo: ${record.fridgeFuel} litres\n` +
+                `Total: ${record.totalFuel} litres\n` +
+                `Prix/litre: ${record.pricePerLiter} DH\n` +
+                `Coût total: ${record.totalCost.toFixed(2)} DH`;
+
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // ============================================================
+        //  AFFICHAGE
+        // ============================================================
+        function updateRecordsList() {
+            const listDiv = document.getElementById('recordsList');
+            if (!listDiv) return;
+            if (fuelRecords.length === 0) {
+                listDiv.innerHTML = '<p style="color:#95a5a6;text-align:center;padding:1rem;">Aucun enregistrement pour le moment.</p>';
+                return;
+            }
+            let html = '';
+            fuelRecords.slice().reverse().forEach(record => {
+                html += '<div class="compact-record longpress-item" ' +
+                        'onmousedown="startMainRecordLongPress(event, ' + record.id + ')" ' +
+                        'onmouseup="cancelLongPress()" ' +
+                        'onmouseleave="cancelLongPress()" ' +
+                        'ontouchstart="startMainRecordLongPress(event, ' + record.id + ')" ' +
+                        'ontouchend="cancelLongPress()" ' +
+                        'ontouchmove="cancelLongPress()" ' +
+                        'oncontextmenu="return false;">' +
+                    '<div class="record-main-info">' +
+                        '<div class="truck-header"><div class="truck-icon">🚛</div><span class="truck-number">' + record.truckNumber + '</span></div>' +
+                        '<span class="driver-name">' + record.driverName + '</span>' +
+                        '<span class="location-info">📍 ' + record.location + '</span>' +
+                        '<span class="date-info">🗓️ ' + record.timestamp + '</span>' +
+                    '</div>' +
+                    '<div class="record-fuel-info">' +
+                        '<span class="fuel-amount">⛽ ' + record.totalFuel + ' L</span>' +
+                        '<span class="fuel-details">Camion: ' + record.truckFuel + ' L | Frigo: ' + record.fridgeFuel + ' L</span>' +
+                        '<span class="fuel-details">' + record.totalCost.toFixed(2) + ' DH (' + record.pricePerLiter + ' DH/L)</span>' +
+                    '</div>' +
+                    '<div class="record-actions">' +
+                        '<button class="action-btn pdf-rec-btn" title="Facture PDF" onclick="generateInvoicePDF(getRecordById(' + record.id + '))">📄</button>' +
+                        '<button class="action-btn whatsapp-btn" title="Partager WhatsApp" onclick="shareViaWhatsApp(getRecordById(' + record.id + '))">📱</button>' +
+                    '</div>' +
+                '</div>';
+            });
+            listDiv.innerHTML = html;
+        }
+
+        function updateSummaryStats() {
+            const totalFuel = fuelRecords.reduce((s, r) => s + r.totalFuel, 0);
+            const totalCost = fuelRecords.reduce((s, r) => s + r.totalCost, 0);
+            document.getElementById('totalFuelAmount').textContent = totalFuel.toFixed(1) + ' L';
+            document.getElementById('totalCostAmount').textContent = totalCost.toFixed(2) + ' DH';
+        }
+
+        function updateAdminOverview() {
+            const totalRecords = fuelRecords.length;
+            const uniqueTrucks = [...new Set(fuelRecords.map(r => r.truckNumber))];
+            const uniqueDrivers = [...new Set(fuelRecords.map(r => r.driverName))];
+
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            const weeklyRecords = fuelRecords.filter(r => parseTimestamp(r.timestamp) > oneWeekAgo).length;
+
+            const totalFuel = fuelRecords.reduce((s, r) => s + r.totalFuel, 0);
+            const totalCost = fuelRecords.reduce((s, r) => s + r.totalCost, 0);
+            const avgCost = totalFuel > 0 ? (totalCost / totalFuel).toFixed(2) : 0;
+
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('weeklyRecords').textContent = weeklyRecords;
+            document.getElementById('activeTrucks').textContent = uniqueTrucks.length;
+            document.getElementById('totalTrucks').textContent = uniqueTrucks.length;
+            document.getElementById('activeDrivers').textContent = uniqueDrivers.length;
+            document.getElementById('totalDrivers').textContent = uniqueDrivers.length;
+            document.getElementById('avgCostPerLiter').textContent = avgCost + ' DH';
+            document.getElementById('monthlyAvg').textContent = avgCost + ' DH';
+        }
+
+        function updateDriverStats() {
+            const statsDiv = document.getElementById('driverStats');
+            const drivers = {};
+            fuelRecords.forEach(r => {
+                if (!drivers[r.driverName]) drivers[r.driverName] = { totalFuel: 0, totalCost: 0, count: 0, trucks: new Set() };
+                drivers[r.driverName].totalFuel += r.totalFuel;
+                drivers[r.driverName].totalCost += r.totalCost;
+                drivers[r.driverName].count++;
+                drivers[r.driverName].trucks.add(r.truckNumber);
+            });
+            const names = Object.keys(drivers);
+            if (names.length === 0) { statsDiv.innerHTML = '<p style="color:#95a5a6;">Aucune donnée.</p>'; return; }
+            let html = '';
+            names.forEach(name => {
+                const d = drivers[name];
+                html += '<div class="driver-stat-item">' +
+                    '<div class="driver-stat-header"><span class="driver-name">' + name + '</span><span class="driver-total">' + d.totalCost.toFixed(2) + ' DH</span></div>' +
+                    '<div class="driver-details"><span>⛽ ' + d.totalFuel.toFixed(1) + ' litres</span><span>📋 ' + d.count + ' ravitaillements</span><span>🚛 ' + d.trucks.size + ' camion(s)</span></div>' +
+                '</div>';
+            });
+            statsDiv.innerHTML = html;
+        }
+
+        function updateTruckInfo() {
+            const grid = document.getElementById('truckInfoGrid');
+            const trucks = {};
+            fuelRecords.forEach(r => {
+                if (!trucks[r.truckNumber]) trucks[r.truckNumber] = { totalFuel: 0, totalCost: 0, count: 0, drivers: new Set() };
+                trucks[r.truckNumber].totalFuel += r.totalFuel;
+                trucks[r.truckNumber].totalCost += r.totalCost;
+                trucks[r.truckNumber].count++;
+                trucks[r.truckNumber].drivers.add(r.driverName);
+            });
+            const numbers = Object.keys(trucks);
+            if (numbers.length === 0) { grid.innerHTML = '<p style="color:#95a5a6;">Aucune donnée.</p>'; return; }
+            let html = '';
+            numbers.forEach(num => {
+                const t = trucks[num];
+                html += '<div class="truck-info-item">' +
+                    '<div class="truck-info-header"><span class="truck-number">' + num + '</span><span class="truck-driver">' + [...t.drivers].join(', ') + '</span></div>' +
+                    '<div class="truck-details"><span>⛽ ' + t.totalFuel.toFixed(1) + ' litres</span><span>📋 ' + t.count + ' ravitaillements</span><span>💰 ' + t.totalCost.toFixed(2) + ' DH</span></div>' +
+                '</div>';
+            });
+            grid.innerHTML = html;
+        }
+
+        function updateAdminSummaryStats() {
+            const totalFuel = fuelRecords.reduce((s, r) => s + r.totalFuel, 0);
+            const totalCost = fuelRecords.reduce((s, r) => s + r.totalCost, 0);
+            document.getElementById('adminTotalFuelAmount').textContent = totalFuel.toFixed(1) + ' L';
+            document.getElementById('adminTotalCostAmount').textContent = totalCost.toFixed(2) + ' DH';
+        }
+
+        function updateAdminTable() {
+            const tbody = document.getElementById('recordsTableBody');
+            let html = '';
+            let totalCost = 0;
+            fuelRecords.forEach(record => {
+                totalCost += record.totalCost;
+                html += '<tr>' +
+                    '<td>' + record.timestamp + '</td>' +
+                    '<td>' + record.truckNumber + '</td>' +
+                    '<td>' + record.driverName + '</td>' +
+                    '<td>' + record.location + '</td>' +
+                    '<td>' + record.mileage + ' km</td>' +
+                    '<td>' + record.truckFuel + ' L</td>' +
+                    '<td>' + record.fridgeFuel + ' L</td>' +
+                    '<td>' + record.pricePerLiter + ' DH</td>' +
+                    '<td class="cost-cell">' + record.totalCost.toFixed(2) + ' DH</td>' +
+                    '<td><div class="table-actions">' +
+                        '<button class="mini-btn pdf-btn" title="Facture PDF" onclick="generateInvoicePDF(getRecordById(' + record.id + '))">📄</button>' +
+                        '<button class="mini-btn" style="background:#e74c3c;color:white;" title="Supprimer" onclick="deleteRecord(' + record.id + ')">🗑️</button>' +
+                    '</div></td>' +
+                '</tr>';
+            });
+            if (fuelRecords.length === 0) {
+                html = '<tr><td colspan="10" style="text-align:center;color:#95a5a6;padding:2rem;">Aucun enregistrement.</td></tr>';
+            }
+            tbody.innerHTML = html;
+            document.getElementById('footerTotalCost').textContent = totalCost.toFixed(2) + ' DH';
+        }
+
+        function updateDriverSummary() {
+            const body = document.getElementById('driverSummaryBody');
+            if (!body) return;
+
+            const drivers = {};
+            fuelRecords.forEach(function (r) {
+                const n = String(r.driverName || '-');
+                if (!drivers[n]) drivers[n] = { count: 0, fuel: 0, cost: 0 };
+                drivers[n].count++;
+                drivers[n].fuel += r.totalFuel;
+                drivers[n].cost += r.totalCost;
+            });
+
+            const names = Object.keys(drivers);
+            if (names.length === 0) {
+                body.innerHTML = '<p style="color:#95a5a6;text-align:center;padding:1.2rem;">Aucune donnée.</p>';
+                return;
+            }
+
+            let gCount = 0, gFuel = 0, gCost = 0;
+            let html = '<table class="dsum-table"><thead><tr>' +
+                '<th>CHAUFFEUR</th><th class="num">RAVIT.</th><th class="num">QTÉ (L)</th><th class="num">COÛT (DH)</th>' +
+                '</tr></thead><tbody>';
+
+            names.forEach(function (n) {
+                const d = drivers[n];
+                gCount += d.count; gFuel += d.fuel; gCost += d.cost;
+                html += '<tr><td>' + n + '</td>' +
+                    '<td class="num">' + d.count + '</td>' +
+                    '<td class="num">' + d.fuel.toFixed(1) + '</td>' +
+                    '<td class="num">' + d.cost.toFixed(2) + '</td></tr>';
+            });
+
+            html += '</tbody><tfoot><tr class="dsum-total"><td>TOTAL</td>' +
+                '<td class="num">' + gCount + '</td>' +
+                '<td class="num">' + gFuel.toFixed(1) + '</td>' +
+                '<td class="num">' + gCost.toFixed(2) + '</td></tr></tfoot></table>';
+
+            body.innerHTML = html;
+        }
+
+        // ============================================================
+        //  📄 FACTURE
+        // ============================================================
+        function fmtMoney(n) {
+            let v = Number(n || 0).toFixed(2);
+            let parts = v.split('.');
+            let int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            return int + ',' + parts[1];
+        }
+
+        function fmtQty(n) {
+            let v = Number(n || 0).toFixed(1);
+            let parts = v.split('.');
+            let int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            return (Number(parts[1]) === 0) ? int : int + ',' + parts[1];
+        }
+
+        function trimNum(n) {
+            const v = Number(n || 0);
+            return (Math.abs(v - Math.round(v)) < 0.001) ? String(Math.round(v)) : v.toFixed(1);
+        }
+
+        function qtyBreakdownStr(r) {
+            const c = Number(r.truckFuel || 0);
+            const f = Number(r.fridgeFuel || 0);
+            const t = (r.totalFuel != null) ? Number(r.totalFuel) : (c + f);
+            let s = trimNum(t);
+            const parts = [];
+            if (c > 0) parts.push('C' + trimNum(c));
+            if (f > 0) parts.push('F' + trimNum(f));
+            if (parts.length) s += ' (' + parts.join(' ') + ')';
+            return s;
+        }
+
+        function invDateOnly(ts) { return String(ts || '').split(' - ')[0]; }
+
+        function invFormatDate(d) {
+            return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+        }
+
+        function fileNameDate(ts) {
+            return invDateOnly(ts).split('/').join('-');
+        }
+
+        function fitText(doc, s, maxWidth) {
+            s = String(s == null ? '' : s);
+            if (doc.getTextWidth(s) <= maxWidth) return s;
+            while (s.length > 1 && doc.getTextWidth(s + '...') > maxWidth) {
+                s = s.substring(0, s.length - 1);
+            }
+            return s + '...';
+        }
+
+        function invNewDoc() {
+            const { jsPDF } = window.jspdf;
+            return new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        }
+
+        function invDrawHeader(doc, inv) {
+            const W = doc.internal.pageSize.getWidth();
+            const M = 14;
+
+            doc.setFillColor(30, 55, 153);
+            doc.rect(0, 0, W, 24, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(15);
+            doc.text(fitText(doc, inv.title, W - 2 * M), W / 2, 15.5, { align: 'center' });
+
+            let y = 33;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(95, 100, 110);
+            doc.text(fitText(doc, 'Date : ' + inv.date, 120), W - M, y, { align: 'right' });
+
+            y = invDrawInfoBlocks(doc, 40, inv.blockA, inv.blockB);
+            return y;
+        }
+
+        function invDrawInfoBlocks(doc, y0, blockA, blockB) {
+            const W = doc.internal.pageSize.getWidth();
+            const M = 14;
+            const colW = (W - 2 * M - 6) / 2;
+            const x2 = M + colW + 6;
+            const stripH = 7;
+            const rowH = 7.5;
+            const bodyA = blockA.rows.length * rowH + 3;
+            const bodyB = blockB.rows.length * rowH + 3;
+            const hMax = stripH + Math.max(bodyA, bodyB);
+
+            const drawBlock = function (x, title, rows, bodyH) {
+                doc.setFillColor(74, 105, 189);
+                doc.rect(x, y0, colW, stripH, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8);
+                doc.text(fitText(doc, title, colW - 6), x + 3, y0 + 5);
+
+                doc.setDrawColor(215, 222, 232);
+                doc.setLineWidth(0.3);
+                doc.setFillColor(252, 253, 255);
+                doc.rect(x, y0 + stripH, colW, bodyH, 'FD');
+
+                doc.setFontSize(8.5);
+                let yy = y0 + stripH + 6.5;
+                rows.forEach(function (row) {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(120, 125, 135);
+                    const label = String(row[0]) + ' :';
+                    doc.text(fitText(doc, label, colW - 10), x + 4, yy);
+                    const lw = Math.min(doc.getTextWidth(label), colW - 10) + 2;
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(40, 40, 40);
+                    doc.text(fitText(doc, String(row[1] == null ? '-' : row[1]), colW - 8 - lw), x + 4 + lw, yy);
+                    yy += rowH;
+                });
+            };
+
+            drawBlock(M, blockA.title, blockA.rows, bodyA);
+            drawBlock(x2, blockB.title, blockB.rows, bodyB);
+
+            return y0 + hMax + 8;
+        }
+
+        const INV_COLS_SINGLE = [
+            { key: 'desc',  label: 'DÉSIGNATION', w: 92, align: 'left'   },
+            { key: 'qty',   label: 'QTÉ (L)',     w: 26, align: 'center' },
+            { key: 'price', label: 'P.U. (DH)',   w: 26, align: 'right'  },
+            { key: 'total', label: 'TOTAL (DH)',  w: 38, align: 'right'  }
+        ];
+
+        const INV_COLS_MONTH = [
+            { key: 'date',  label: 'DATE',             w: 28, align: 'left'   },
+            { key: 'truck', label: 'CAMION',           w: 20, align: 'left'   },
+            { key: 'lieu',  label: 'LIEU / CHAUFFEUR', w: 46, align: 'left'   },
+            { key: 'qty',   label: 'QTÉ (L)',          w: 34, align: 'center' },
+            { key: 'price', label: 'P.U. (DH)',        w: 20, align: 'right'  },
+            { key: 'total', label: 'TOTAL (DH)',       w: 34, align: 'right'  }
+        ];
+
+        function invDrawTableHeader(doc, y, cols) {
+            const W = doc.internal.pageSize.getWidth();
+            const M = 14;
+
+            doc.setFillColor(30, 55, 153);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.rect(M, y, W - 2 * M, 8, 'F');
+
+            let x = M;
+            cols.forEach(function (c) {
+                const tx = c.align === 'right' ? x + c.w - 3 : (c.align === 'center' ? x + c.w / 2 : x + 3);
+                doc.text(fitText(doc, c.label, c.w - 5), tx, y + 5.5, { align: c.align });
+                x += c.w;
+            });
+            return y + 8;
+        }
+
+        function invDrawRows(doc, startY, items, cols) {
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const M = 14;
+            let y = startY;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+
+            items.forEach(function (it, i) {
+                if (y > H - 90) {
+                    doc.addPage();
+                    y = invDrawTableHeader(doc, 20, cols);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                }
+
+                const rowH = 7.5;
+                if (i % 2 === 1) {
+                    doc.setFillColor(246, 248, 252);
+                    doc.rect(M, y, W - 2 * M, rowH, 'F');
+                }
+
+                doc.setTextColor(55, 60, 70);
+
+                let x = M;
+                cols.forEach(function (c) {
+                    let s;
+                    if (c.key === 'total')      s = fmtMoney(it.qty * it.price);
+                    else if (c.key === 'qty')   s = it.qtyStr || fmtQty(it.qty);
+                    else if (c.key === 'price') s = fmtMoney(it.price);
+                    else                        s = String(it[c.key] == null ? '' : it[c.key]);
+
+                    s = fitText(doc, s, c.w - 5);
+
+                    const tx = c.align === 'right' ? x + c.w - 3 : (c.align === 'center' ? x + c.w / 2 : x + 3);
+                    doc.text(s, tx, y + 5, { align: c.align });
+                    x += c.w;
+                });
+
+                y += rowH;
+                doc.setDrawColor(222, 228, 236);
+                doc.setLineWidth(0.2);
+                doc.line(M, y, W - M, y);
+            });
+
+            return y + 8;
+        }
+
+        function invDrawDriverStats(doc, y, records) {
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const M = 14;
+
+            const drivers = {};
+            records.forEach(function (r) {
+                const name = String(r.driverName || '-');
+                if (!drivers[name]) drivers[name] = { count: 0, fuel: 0, cost: 0 };
+                drivers[name].count++;
+                drivers[name].fuel += (r.totalFuel != null) ? r.totalFuel : ((r.truckFuel || 0) + (r.fridgeFuel || 0));
+                drivers[name].cost += (r.totalCost != null) ? r.totalCost : 0;
+            });
+            const names = Object.keys(drivers);
+            if (names.length === 0) return y;
+
+            const rowH = 7.5;
+            const titleH = 8, headerH = 8;
+            const totalH = titleH + headerH + names.length * rowH + 8;
+
+            if (y > H - (totalH + 45)) { doc.addPage(); y = 20; }
+
+            doc.setFillColor(74, 105, 189);
+            doc.rect(M, y, W - 2 * M, titleH, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.text('STATISTIQUES PAR CHAUFFEUR', M + 3, y + 5.5);
+            y += titleH;
+
+            const cols = [
+                { key: 'name',  label: 'CHAUFFEUR', w: 80, align: 'left'   },
+                { key: 'count', label: 'RAVIT.',    w: 24, align: 'center' },
+                { key: 'fuel',  label: 'QTÉ (L)',   w: 34, align: 'center' },
+                { key: 'cost',  label: 'COÛT (DH)', w: 44, align: 'right'  }
+            ];
+
+            doc.setFillColor(30, 55, 153);
+            doc.rect(M, y, W - 2 * M, headerH, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            let x = M;
+            cols.forEach(function (c) {
+                const tx = c.align === 'right' ? x + c.w - 3 : (c.align === 'center' ? x + c.w / 2 : x + 3);
+                doc.text(fitText(doc, c.label, c.w - 5), tx, y + 5.5, { align: c.align });
+                x += c.w;
+            });
+            y += headerH;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+
+            names.forEach(function (n, i) {
+                const d = drivers[n];
+                if (i % 2 === 1) {
+                    doc.setFillColor(246, 248, 252);
+                    doc.rect(M, y, W - 2 * M, rowH, 'F');
+                }
+                doc.setTextColor(55, 60, 70);
+                const vals = { name: n, count: String(d.count), fuel: fmtQty(d.fuel), cost: fmtMoney(d.cost) };
+                x = M;
+                cols.forEach(function (c) {
+                    const s = fitText(doc, vals[c.key], c.w - 5);
+                    const tx = c.align === 'right' ? x + c.w - 3 : (c.align === 'center' ? x + c.w / 2 : x + 3);
+                    doc.text(s, tx, y + 5, { align: c.align });
+                    x += c.w;
+                });
+                y += rowH;
+            });
+
+            return y + 10;
+        }
+
+        function invDrawTotals(doc, y, items) {
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const M = 14;
+
+            const total = items.reduce(function (s, it) { return s + it.qty * it.price; }, 0);
+            const liters = items.reduce(function (s, it) { return s + it.qty; }, 0);
+
+            if (y > H - 40) { doc.addPage(); y = 20; }
+
+            const tw = 96;
+            const tx = W - M - tw;
+            const bh = 14;
+            doc.setFillColor(30, 55, 153);
+            doc.rect(tx, y, tw, bh, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.text('TOTAL', tx + 4, y + 9.5);
+            doc.setFontSize(9.5);
+            const val = fmtQty(liters) + ' L — ' + fmtMoney(total) + ' DH';
+            doc.text(fitText(doc, val, tw - 28), W - M - 3, y + 9.5, { align: 'right' });
+
+            return y + bh + 8;
+        }
+
+        function invDrawFooter(doc) {
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const nb = doc.getNumberOfPages();
+            for (let p = 1; p <= nb; p++) {
+                doc.setPage(p);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(150, 155, 165);
+                doc.text('Page ' + p + ' / ' + nb, W - 14, H - 8, { align: 'right' });
+            }
+        }
+
+        // FACTURE D'UN SEUL ENREGISTREMENT
+        function generateInvoicePDF(record) {
+            if (!record) { alert('Enregistrement introuvable !'); return; }
+            const doc = invNewDoc();
+
+            const items = [];
+            if (record.truckFuel > 0)  items.push({ desc: 'Carburant camion - ' + record.location, qty: record.truckFuel,  price: record.pricePerLiter });
+            if (record.fridgeFuel > 0) items.push({ desc: 'Carburant frigo - ' + record.location,  qty: record.fridgeFuel, price: record.pricePerLiter });
+            if (items.length === 0)     items.push({ desc: 'Carburant - ' + record.location,       qty: record.totalFuel,  price: record.pricePerLiter });
+
+            const inv = {
+                title: 'FACTURE DE RAVITAILLEMENT',
+                date: record.timestamp,
+                blockA: { title: 'CHAUFFEUR', rows: [
+                    ['Nom', record.driverName],
+                    ['Lieu', record.location]
+                ]},
+                blockB: { title: 'VÉHICULE', rows: [
+                    ['Camion N°', record.truckNumber],
+                    ['Kilométrage', record.mileage + ' km']
+                ]}
+            };
+
+            let y = invDrawHeader(doc, inv);
+            y = invDrawTableHeader(doc, y, INV_COLS_SINGLE);
+            y = invDrawRows(doc, y, items, INV_COLS_SINGLE);
+            y = invDrawTotals(doc, y, items);
+            invDrawFooter(doc);
+
+            doc.save('Facture_' + String(record.truckNumber).replace(/[^A-Za-z0-9]/g, '') + '_' + record.id + '.pdf');
+        }
+
+        // FACTURE MENSUELLE / ARCHIVE
+        function buildMonthlyInvoiceDoc(records, monthLabel, headerDate) {
+            const doc = invNewDoc();
+
+            const sorted = records.slice().sort(function (a, b) {
+                const t = String(a.truckNumber).localeCompare(String(b.truckNumber));
+                if (t !== 0) return t;
+                return parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp);
+            });
+
+            const items = [];
+            sorted.forEach(function (r) {
+                const q = (r.totalFuel != null) ? r.totalFuel : ((r.truckFuel || 0) + (r.fridgeFuel || 0));
+                items.push({
+                    date: r.timestamp,
+                    truck: r.truckNumber,
+                    lieu: String(r.location || '-') + ' - ' + String(r.driverName || '-'),
+                    qty: q,
+                    qtyStr: qtyBreakdownStr(r),
+                    price: r.pricePerLiter
+                });
+            });
+
+            const trucks  = [...new Set(records.map(r => r.truckNumber))];
+            const drivers = [...new Set(records.map(r => r.driverName))];
+            const dates = records.map(r => parseTimestamp(r.timestamp)).filter(d => !isNaN(d.getTime()));
+            const minD = dates.length ? new Date(Math.min.apply(null, dates)) : null;
+            const maxD = dates.length ? new Date(Math.max.apply(null, dates)) : null;
+
+            const inv = {
+                title: 'FACTURE MENSUELLE DE CARBURANT',
+                date: headerDate || monthLabel,
+                blockA: { title: 'PÉRIODE', rows: [
+                    ['Mois', monthLabel],
+                    ['Du', minD ? invFormatDate(minD) : '-'],
+                    ['Au', maxD ? invFormatDate(maxD) : '-']
+                ]},
+                blockB: { title: 'FLOTTE', rows: [
+                    ['Camions', trucks.length + ''],
+                    ['Chauffeurs', drivers.length + ''],
+                    ['Enregistrements', records.length + '']
+                ]}
+            };
+
+            let y = invDrawHeader(doc, inv);
+            y = invDrawTableHeader(doc, y, INV_COLS_MONTH);
+            y = invDrawRows(doc, y, items, INV_COLS_MONTH);
+            y = invDrawDriverStats(doc, y, records);
+            y = invDrawTotals(doc, y, items);
+            invDrawFooter(doc);
+
+            return doc;
+        }
+
+        // ============================================================
+        //  🗄️ ARCHIVAGE
+        // ============================================================
+        function archiveCurrentMonth() {
+            if (fuelRecords.length === 0) { alert('Aucune donnée à archiver !'); return; }
+            if (!confirm('Archiver toutes les données actuelles ?\n(1 facture PDF regroupant tous les camions + sauvegarde dans l\'archive + vidage du tableau principal)')) return;
+
+            const now = new Date();
+            const nowTs = formatDateTime(now);
+            const monthLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            const archivedRecords = fuelRecords.slice();
+
+            const existing = archives.find(a => a.month === monthLabel);
+            if (existing) {
+                existing.records = (existing.records || []).concat(archivedRecords);
+                existing.dateArchived = nowTs;
+            } else {
+                archives.push({ month: monthLabel, dateArchived: nowTs, records: archivedRecords });
+            }
+
+            fuelRecords = [];
+
+            try {
+                localStorage.setItem('archives', JSON.stringify(archives));
+                localStorage.setItem('fuelRecords', JSON.stringify(fuelRecords));
+            } catch (e) {
+                alert('⚠️ Attention : stockage saturé ! Les données risquent de ne pas être sauvegardées.');
+            }
+
+            try {
+                const doc = buildMonthlyInvoiceDoc(archivedRecords, monthLabel, nowTs);
+                doc.save('Facture_' + fileNameDate(nowTs) + '.pdf');
+            } catch (e) {
+                alert('⚠️ Le PDF n\'a pas pu être généré, mais les données sont bien archivées.');
+            }
+
+            updateRecordsList();
+            updateSummaryStats();
+            updateDriverSummary();
+            if (currentUser && currentUser.type === 'admin') {
+                updateAdminOverview();
+                updateDriverStats();
+                updateTruckInfo();
+                updateAdminSummaryStats();
+                updateAdminTable();
+            }
+            switchTab('archive');
+            showSuccessMessage();
+        }
+
+        function generateArchiveMonthPDF(index) {
+            const a = archives[index];
+            if (!a || !a.records || a.records.length === 0) { alert('Aucune donnée pour ce mois !'); return; }
+            const doc = buildMonthlyInvoiceDoc(a.records, a.month, a.dateArchived || a.month);
+            const fileDate = a.dateArchived ? fileNameDate(a.dateArchived) : fileNameDate(formatDateTime(new Date()));
+            doc.save('Facture_' + fileDate + '.pdf');
+        }
+
+        // ============================================================
+        //  👆 APPUI LONG (≈ 700 ms)
+        // ============================================================
+        let lpTimer = null;
+
+        function cancelLongPress() {
+            if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+        }
+
+        function startMainRecordLongPress(ev, id) {
+            if (ev && ev.target && ev.target.closest && ev.target.closest('button')) return;
+            cancelLongPress();
+            lpTimer = setTimeout(function () {
+                lpTimer = null;
+                if (confirm('Supprimer cet enregistrement ?')) deleteRecord(id);
+            }, 700);
+        }
+
+        function startRecordLongPress(id) {
+            cancelLongPress();
+            lpTimer = setTimeout(function () {
+                lpTimer = null;
+                if (confirm('Supprimer définitivement cet enregistrement de l\'archive ?')) {
+                    deleteArchiveRecord(id);
+                }
+            }, 700);
+        }
+
+        function startMonthLongPress(ev, index) {
+            if (ev && ev.target && ev.target.closest && ev.target.closest('button')) return;
+            const m = (archives[index] && archives[index].month) ? archives[index].month : '';
+            cancelLongPress();
+            lpTimer = setTimeout(function () {
+                lpTimer = null;
+                if (confirm('Supprimer définitivement tout le mois « ' + m + ' » de l\'archive ?')) {
+                    deleteArchiveMonth(index);
+                }
+            }, 700);
+        }
+
+        // ============================================================
+        //  SUPPRESSIONS (archive)
+        // ============================================================
+        function deleteArchiveRecord(id) {
+            let found = false;
+            archives.forEach(function (a) {
+                const before = (a.records || []).length;
+                a.records = (a.records || []).filter(function (r) { return r.id !== id; });
+                if ((a.records || []).length < before) found = true;
+            });
+
+            if (!found) { alert('Enregistrement introuvable !'); return; }
+
+            archives = archives.filter(function (a) { return (a.records || []).length > 0; });
+
+            try { localStorage.setItem('archives', JSON.stringify(archives)); } catch (e) {}
+            searchArchive();
+            renderArchiveList();
+            showSuccessMessage();
+        }
+
+        function deleteArchiveMonth(index) {
+            const a = archives[index];
+            if (!a) return;
+            archives.splice(index, 1);
+            try { localStorage.setItem('archives', JSON.stringify(archives)); } catch (e) {}
+            renderArchiveList();
+            showSuccessMessage();
+        }
+
+        // ============================================================
+        //  LISTE DES MOIS ARCHIVÉS
+        // ============================================================
+        function renderArchiveList() {
+            const listDiv = document.getElementById('archiveMonthsList');
+            if (!listDiv) return;
+            if (!Array.isArray(archives) || archives.length === 0) {
+                listDiv.innerHTML = '<p style="color:#7f8c8d;">Aucun mois archivé pour le moment.</p>';
+                return;
+            }
+            let html = '<p class="longpress-hint">💡 Appui long sur un mois pour le supprimer.</p>';
+            archives.forEach((a, i) => {
+                const recs = a.records || [];
+                const totalFuel = recs.reduce((s, r) => s + r.totalFuel, 0);
+                const totalCost = recs.reduce((s, r) => s + r.totalCost, 0);
+                html += '<div class="archive-month-item longpress-item" ' +
+                        'onmousedown="startMonthLongPress(event, ' + i + ')" ' +
+                        'onmouseup="cancelLongPress()" ' +
+                        'onmouseleave="cancelLongPress()" ' +
+                        'ontouchstart="startMonthLongPress(event, ' + i + ')" ' +
+                        'ontouchend="cancelLongPress()" ' +
+                        'ontouchmove="cancelLongPress()" ' +
+                        'oncontextmenu="return false;">' +
+                            '<div>' +
+                                '<div class="archive-month-title">' + a.month + '</div>' +
+                                '<div class="archive-month-details">' + recs.length + ' enregistrements — ' +
+                                totalFuel.toFixed(1) + ' L — ' + totalCost.toFixed(2) + ' DH' +
+                                (a.dateArchived ? ' — Archivé le ' + a.dateArchived : '') + '</div>' +
+                            '</div>' +
+                            '<div class="table-actions">' +
+                                '<button class="mini-btn pdf-btn" onclick="generateArchiveMonthPDF(' + i + ')">📄 PDF</button>' +
+                            '</div>' +
+                        '</div>';
+            });
+            listDiv.innerHTML = html;
+        }
+
+        // ============================================================
+        //  🔎 RECHERCHE
+        // ============================================================
+        function searchArchive() {
+            const term = document.getElementById('archiveSearchInput').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('archiveSearchResults');
+            if (!term) { resultsDiv.innerHTML = ''; return; }
+
+            const groups = {};
+            (archives || []).forEach(function (a) {
+                (a.records || []).forEach(function (r) {
+                    if (String(r.truckNumber).toLowerCase().includes(term) ||
+                        String(r.driverName).toLowerCase().includes(term)) {
+                        const key = r.truckNumber + '|' + r.driverName;
+                        if (!groups[key]) {
+                            groups[key] = { truck: r.truckNumber, driver: r.driverName, records: [] };
+                        }
+                        groups[key].records.push(r);
+                    }
+                });
+            });
+
+            const keys = Object.keys(groups);
+            if (keys.length === 0) {
+                resultsDiv.innerHTML = '<div class="archive-search-summary">Aucun résultat trouvé.</div>';
+                return;
+            }
+
+            let html = '';
+
+            keys.forEach(function (k) {
+                const g = groups[k];
+                g.records.sort(function (a, b) { return parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp); });
+
+                html += '<div class="search-group">' +
+                            '<div class="search-group-header">' +
+                                '<span>🚛 <strong>' + g.truck + '</strong> — ' + g.driver + '</span>' +
+                            '</div>' +
+                            '<div class="search-group-records">';
+
+                g.records.forEach(function (r) {
+                    html += '<div class="search-record-item longpress-item" ' +
+                            'onmousedown="startRecordLongPress(' + r.id + ')" ' +
+                            'onmouseup="cancelLongPress()" ' +
+                            'onmouseleave="cancelLongPress()" ' +
+                            'ontouchstart="startRecordLongPress(' + r.id + ')" ' +
+                            'ontouchend="cancelLongPress()" ' +
+                            'ontouchmove="cancelLongPress()" ' +
+                            'oncontextmenu="return false;">' +
+                                '<span>🗓️ ' + r.timestamp + ' — ⛽ ' + r.totalFuel + ' L — ' + r.totalCost.toFixed(2) + ' DH</span>' +
+                            '</div>';
+                });
+
+                html += '</div></div>';
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+
+    <!-- ⭐ PWA: enregistrement du Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(function (err) { console.warn('SW non enregistré :', err); });
+            });
+        }
+    </script>
+</body>
+</html>
